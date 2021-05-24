@@ -7,7 +7,7 @@ from datetime import date, timedelta, datetime
 
 DATE_FORMAT = '%Y-%m-%dT%H:%M'
 
-coins = ['btc', 'eth'] #, 'ada', 'link', 'algo', 'ltc']
+coins = ['btc', 'eth', 'ada', 'link', 'algo', 'ltc']
 features = ['low', 'high', 'open', 'close', 'volume'] # 'market_cap', 'circulating_supply', 'keyword_freq', 'biz_sia', 'transactions'
 other_features = []
 num_features = (len(coins)*len(features)) + len(other_features)
@@ -23,6 +23,7 @@ def get_candles_for_coin(coin, start_time, end_time, granularity=900):
     ]
     """
 
+    dt = granularity/60/5
     t0 = datetime.strptime(start_time, DATE_FORMAT)
     t1 = t0 + timedelta(days=3)
     end_time = datetime.strptime(end_time, DATE_FORMAT)
@@ -30,7 +31,6 @@ def get_candles_for_coin(coin, start_time, end_time, granularity=900):
     price_pair = coin.upper() + '-USD'
     ret = []
     while t1 < end_time:
-        print(coin, t1)
 
         r = requests.get('https://api.pro.coinbase.com/products/{}/candles?start={}&stop={}&granularity={}'.format(
             price_pair, 
@@ -39,8 +39,8 @@ def get_candles_for_coin(coin, start_time, end_time, granularity=900):
             granularity)
         )
     
-        t0 = t0 + timedelta(days=3)
-        t1 = t1 + timedelta(days=3)
+        t0 = t0 + timedelta(days=dt)
+        t1 = t1 + timedelta(days=dt)
 
         ret += r.json()
 
@@ -84,12 +84,10 @@ app = Flask(__name__)
 
 @app.route('/data')
 def get_data():
-    frame_size = request.args.get('frame_size', '')
     start_time = request.args.get('start_time', '')
     end_time = request.args.get('end_time', '')
 
     candles = get_candles(start_time, end_time)
-
     data = get_data_from_candles(candles)    
 
     timesteps = len(data)
