@@ -7,7 +7,7 @@ from datetime import date, timedelta, datetime
 
 DATE_FORMAT = '%Y-%m-%dT%H:%M'
 
-coins = ['btc', 'eth', 'ada', 'link', 'algo', 'ltc']
+coins = ['btc', 'eth', 'ada', 'link', 'algo', 'nmr', 'xlm']
 features = ['low', 'high', 'open', 'close', 'volume'] # 'market_cap', 'circulating_supply', 'keyword_freq', 'biz_sia', 'transactions'
 other_features = []
 num_features = (len(coins)*len(features)) + len(other_features)
@@ -20,12 +20,12 @@ def get_candles_for_coin(coin, start_time, end_time, granularity=900):
         [ time, low, high, open, close, volume ],
         [ 1415398768, 0.32, 4.2, 0.35, 4.2, 12.3 ],
         ...
-    ]
+    ]   
     """
 
     dt = granularity/60/5
     t0 = datetime.strptime(start_time, DATE_FORMAT)
-    t1 = t0 + timedelta(days=3)
+    t1 = t0 + timedelta(days=dt)
     end_time = datetime.strptime(end_time, DATE_FORMAT)
 
     price_pair = coin.upper() + '-USD'
