@@ -9,8 +9,7 @@ DATE_FORMAT = '%Y-%m-%dT%H:%M'
 
 coins = ['btc', 'eth', 'ada', 'link', 'algo', 'nmr', 'xlm']
 features = ['low', 'high', 'open', 'close', 'volume'] # 'market_cap', 'circulating_supply', 'keyword_freq', 'biz_sia', 'transactions'
-other_features = []
-num_features = (len(coins)*len(features)) + len(other_features)
+num_features = (len(coins)*len(features))
 
 
 
@@ -49,13 +48,14 @@ def get_candles_for_coin(coin, start_time, end_time, granularity=900):
 
 def get_candles(start_time, end_time):
     candles = {}
-    for coin in coins:        
+    for i, coin in enumerate(coins):
+        print(f'Getting candles for {i+1}/{len(coins)} coins')
         candles[coin] = get_candles_for_coin(coin, start_time, end_time)
     return candles
 
 
 def get_data_from_candles(candles):
-    data = []
+    data, ts = [], []
     try:
         i = 0
         while True:
@@ -63,17 +63,20 @@ def get_data_from_candles(candles):
             for coin in coins:
                 frame += candles[coin][i][1:] # comment out [1:]?
             data.append(frame)
+            ts.append(candles[coins[0]][i][0])
             i += 1
     except IndexError:
         pass
-    return data
+
+    data.reverse()
+    ts.reverse()
+    return data, ts
 
 
 def create_header():
     header = []
     for coin in coins:
         header += [coin + '_' + f for f in features]
-    header += other_features
     return header
 
 
@@ -88,12 +91,14 @@ def get_data():
     end_time = request.args.get('end_time', '')
 
     candles = get_candles(start_time, end_time)
-    data = get_data_from_candles(candles)    
+    data, timestamps = get_data_from_candles(candles)
 
-    timesteps = len(data)
-    timestamps = list(range(timesteps))
 
-    df = pd.DataFrame(data, index=timestamps, columns=header)
+    timesteps = len(timestamps)
+    index = list(range(timesteps))
+
+    df = pd.DataFrame(data, index=index, columns=header)
+    df['timestamp'] = timestamps
     print(df)
     return df.to_json()
 
@@ -106,8 +111,8 @@ def get_coins():
 
 if __name__ == '__main__':
     """Tests"""
-    candles = get_candles('2021-05-18T00:00', '2021-05-22T00:00')
-    data = get_data_from_candles(candles)
+    candles = get_candles('2021-01-01T00:00', '2021-04-22T00:00')
+    data, timestamps = get_data_from_candles(candles)
 
     print()
     print(len(data))
@@ -116,8 +121,9 @@ if __name__ == '__main__':
     print('header len', len(header))
 
 
-    timesteps = len(data)
-    timestamps = list(range(timesteps))
+    timesteps = len(timestamps)
+    index = list(range(timesteps))
 
-    df = pd.DataFrame(data, index=timestamps, columns=header)
+    df = pd.DataFrame(data, index=index, columns=header)
+    df['timestamps'] = timestamps
     print(df)
