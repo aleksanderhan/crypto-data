@@ -13,7 +13,7 @@ num_features = (len(coins)*len(features))
 
 
 
-def get_candles_for_coin(coin, start_time, end_time, granularity=900):
+def get_candles_for_coin(coin, start_time, end_time, granularity=60):
     """
     [
         [ time, low, high, open, close, volume ],
