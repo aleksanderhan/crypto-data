@@ -1,5 +1,4 @@
 from flask import Flask, request
-import numpy as np
 import pandas as pd
 import json
 import requests
@@ -9,7 +8,6 @@ DATE_FORMAT = '%Y-%m-%dT%H:%M'
 
 coins = ['btc', 'eth', 'ada', 'link', 'algo', 'nmr', 'xlm']
 features = ['low', 'high', 'open', 'close', 'volume'] # 'market_cap', 'circulating_supply', 'keyword_freq', 'biz_sia', 'transactions'
-num_features = (len(coins)*len(features))
 
 
 
@@ -46,15 +44,15 @@ def get_candles_for_coin(coin, start_time, end_time, granularity=60):
     return ret
 
 
-def get_candles(start_time, end_time):
+def get_candles(start_time, end_time, coins, granularity):
     candles = {}
     for i, coin in enumerate(coins):
         print(f'Getting candles for {i+1}/{len(coins)} coins')
-        candles[coin] = get_candles_for_coin(coin, start_time, end_time)
+        candles[coin] = get_candles_for_coin(coin, start_time, end_time, granularity)
     return candles
 
 
-def get_data_from_candles(candles):
+def get_data_from_candles(candles, coins):
     data, ts = [], []
     try:
         i = 0
@@ -73,14 +71,13 @@ def get_data_from_candles(candles):
     return data, ts
 
 
-def create_header():
+def create_header(coins):
     header = []
     for coin in coins:
         header += [coin + '_' + f for f in features]
     return header
 
 
-header = create_header()
 
 app = Flask(__name__)
 
@@ -89,35 +86,34 @@ app = Flask(__name__)
 def get_data():
     start_time = request.args.get('start_time', '')
     end_time = request.args.get('end_time', '')
+    coins = request.args.get('coins', '').split(',')
+    granularity = int(request.args.get('granularity', ''))
 
-    candles = get_candles(start_time, end_time)
-    data, timestamps = get_data_from_candles(candles)
+    candles = get_candles(start_time, end_time, coins, granularity)
+    data, timestamps = get_data_from_candles(candles, coins)
 
 
     timesteps = len(timestamps)
     index = list(range(timesteps))
 
-    df = pd.DataFrame(data, index=index, columns=header)
+    df = pd.DataFrame(data, index=index, columns=create_header(coins))
     df['timestamp'] = timestamps
     print(df)
     return df.to_json()
 
 
-@app.route('/coins')
-def get_coins():
-    return json.dumps(coins)
-
 
 
 if __name__ == '__main__':
     """Tests"""
-    candles = get_candles('2021-01-01T00:00', '2021-04-22T00:00')
-    data, timestamps = get_data_from_candles(candles)
+    coins = ['btc']
+    candles = get_candles('2021-01-01T00:00', '2021-04-22T00:00', coins, 900)
+    data, timestamps = get_data_from_candles(candles, coins)
 
     print()
     print(len(data))
     print(len(data[0]))
-    print('num_features', num_features)
+    print('num_features', (len(coins)*len(features)))
     print('header len', len(header))
 
 
