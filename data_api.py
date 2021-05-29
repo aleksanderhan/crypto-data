@@ -3,14 +3,14 @@ import pandas as pd
 import json
 import requests
 from datetime import date, timedelta, datetime
+from functools import lru_cache
 
 DATE_FORMAT = '%Y-%m-%dT%H:%M'
 
-coins = ['btc', 'eth', 'ada', 'link', 'algo', 'nmr', 'xlm']
 features = ['low', 'high', 'open', 'close', 'volume'] # 'market_cap', 'circulating_supply', 'keyword_freq', 'biz_sia', 'transactions'
 
 
-
+@lru_cache(maxsize=10000)
 def get_candles_for_coin(coin, start_time, end_time, granularity=60):
     """
     [
@@ -28,6 +28,7 @@ def get_candles_for_coin(coin, start_time, end_time, granularity=60):
     price_pair = coin.upper() + '-USD'
     ret = []
     while t1 < end_time:
+        print(datetime.strftime(t1, '%Y-%m-%d'), datetime.strftime(end_time, '%Y-%m-%d'))
 
         r = requests.get('https://api.pro.coinbase.com/products/{}/candles?start={}&stop={}&granularity={}'.format(
             price_pair, 
@@ -53,22 +54,19 @@ def get_candles(start_time, end_time, coins, granularity):
 
 
 def get_data_from_candles(candles, coins):
-    data, ts = [], []
-    try:
-        i = 0
-        while True:
-            frame = []
-            for coin in coins:
-                frame += candles[coin][i][1:] # comment out [1:]?
-            data.append(frame)
-            ts.append(candles[coins[0]][i][0])
-            i += 1
-    except IndexError:
-        pass
+    data, timestamps = [], []
+    num_frames = len(candles[coins[0]])
+    
+    for i in range(num_frames):
+        frame = []
+        for coin in coins:
+            frame += candles[coin][i][1:]
+        data.append(frame)
+        timestamps.append(candles[coins[0]][i][0])
 
     data.reverse()
-    ts.reverse()
-    return data, ts
+    timestamps.reverse()
+    return data, timestamps
 
 
 def create_header(coins):
@@ -91,10 +89,8 @@ def get_data():
 
     candles = get_candles(start_time, end_time, coins, granularity)
     data, timestamps = get_data_from_candles(candles, coins)
-
-
-    timesteps = len(timestamps)
-    index = list(range(timesteps))
+ 
+    index = list(range(len(timestamps)))
 
     df = pd.DataFrame(data, index=index, columns=create_header(coins))
     df['timestamp'] = timestamps
@@ -107,19 +103,19 @@ def get_data():
 if __name__ == '__main__':
     """Tests"""
     coins = ['btc']
-    candles = get_candles('2021-01-01T00:00', '2021-04-22T00:00', coins, 900)
+    candles = get_candles('2021-04-01T00:00', '2021-04-22T00:00', coins, 900)
+
     data, timestamps = get_data_from_candles(candles, coins)
 
     print()
     print(len(data))
     print(len(data[0]))
     print('num_features', (len(coins)*len(features)))
-    print('header len', len(header))
 
 
     timesteps = len(timestamps)
     index = list(range(timesteps))
 
-    df = pd.DataFrame(data, index=index, columns=header)
+    df = pd.DataFrame(data, index=index, columns=create_header(coins))
     df['timestamps'] = timestamps
     print(df)
