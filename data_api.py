@@ -11,7 +11,17 @@ features = ['low', 'high', 'open', 'close', 'volume'] # 'market_cap', 'circulati
 
 
 @lru_cache(maxsize=10000)
-def get_candles_for_coin(coin, start_time, end_time, granularity=60):
+def make_candles_request(price_pair, t0, t1, granularity):
+    r = requests.get('https://api.pro.coinbase.com/products/{}/candles?start={}&stop={}&granularity={}'.format(
+            price_pair, 
+            datetime.strftime(t0, DATE_FORMAT), 
+            datetime.strftime(t1, DATE_FORMAT), 
+            granularity)
+        )
+    return r.json()
+
+
+def get_candles_for_coin(coin, start_time, end_time, granularity):
     """
     [
         [ time, low, high, open, close, volume ],
@@ -28,19 +38,14 @@ def get_candles_for_coin(coin, start_time, end_time, granularity=60):
     price_pair = coin.upper() + '-USD'
     ret = []
     while t1 < end_time:
-        print(datetime.strftime(t1, '%Y-%m-%d'), datetime.strftime(end_time, '%Y-%m-%d'))
+        #print(datetime.strftime(t1, '%Y-%m-%d'), datetime.strftime(end_time, '%Y-%m-%d'))
 
-        r = requests.get('https://api.pro.coinbase.com/products/{}/candles?start={}&stop={}&granularity={}'.format(
-            price_pair, 
-            datetime.strftime(t0, DATE_FORMAT), 
-            datetime.strftime(t1, DATE_FORMAT), 
-            granularity)
-        )
+        result = make_candles_request(price_pair, t0, t1, granularity)
     
         t0 = t0 + timedelta(days=dt)
         t1 = t1 + timedelta(days=dt)
 
-        ret += r.json()
+        ret += result
 
     return ret
 
