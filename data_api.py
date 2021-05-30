@@ -4,13 +4,15 @@ import json
 import requests
 from datetime import date, timedelta, datetime
 from functools import lru_cache
+from time import perf_counter
+
 
 DATE_FORMAT = '%Y-%m-%dT%H:%M'
 
 features = ['low', 'high', 'open', 'close', 'volume'] # 'market_cap', 'circulating_supply', 'keyword_freq', 'biz_sia', 'transactions'
 
 
-@lru_cache(maxsize=10000)
+@lru_cache(maxsize=100000)
 def make_candles_request(price_pair, t0, t1, granularity):
     r = requests.get('https://api.pro.coinbase.com/products/{}/candles?start={}&stop={}&granularity={}'.format(
             price_pair, 
@@ -38,7 +40,7 @@ def get_candles_for_coin(coin, start_time, end_time, granularity):
     price_pair = coin.upper() + '-USD'
     ret = []
     while t1 < end_time:
-        #print(datetime.strftime(t1, '%Y-%m-%d'), datetime.strftime(end_time, '%Y-%m-%d'))
+        print(datetime.strftime(t1, '%Y-%m-%d'), datetime.strftime(end_time, '%Y-%m-%d'), end="\r", flush=True)
 
         result = make_candles_request(price_pair, t0, t1, granularity)
     
@@ -54,7 +56,10 @@ def get_candles(start_time, end_time, coins, granularity):
     candles = {}
     for i, coin in enumerate(coins):
         print(f'Getting candles for {i+1}/{len(coins)} coins')
+        t0 = perf_counter()
         candles[coin] = get_candles_for_coin(coin, start_time, end_time, granularity)
+        t1 = perf_counter()
+        print(f'Downloaded candles for {coin} in {t1-t0} s')
     return candles
 
 
