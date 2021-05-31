@@ -103,6 +103,7 @@ def get_data():
     index = list(range(len(timestamps)))
 
     df = pd.DataFrame(data, index=index, columns=create_header(coins))
+    allorders[allorders == None] = 0
     df['timestamp'] = timestamps
     print(df)
     return df.to_json()
