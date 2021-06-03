@@ -5,6 +5,8 @@ import requests
 from datetime import date, timedelta, datetime
 from functools import lru_cache
 from time import perf_counter
+import matplotlib.pylab as plt
+import urllib 
 
 
 DATE_FORMAT = '%Y-%m-%dT%H:%M'
@@ -12,14 +14,15 @@ DATE_FORMAT = '%Y-%m-%dT%H:%M'
 features = ['low', 'high', 'open', 'close', 'volume'] # 'market_cap', 'circulating_supply', 'keyword_freq', 'biz_sia', 'transactions'
 
 
-@lru_cache(maxsize=100000)
+#@lru_cache(maxsize=100000)
 def make_candles_request(price_pair, t0, t1, granularity):
-    r = requests.get('https://api.pro.coinbase.com/products/{}/candles?start={}&stop={}&granularity={}'.format(
-            price_pair, 
-            datetime.strftime(t0, DATE_FORMAT), 
-            datetime.strftime(t1, DATE_FORMAT), 
-            granularity)
-        )
+    params = {
+        'start': datetime.strftime(t0, DATE_FORMAT),
+        'end': datetime.strftime(t1, DATE_FORMAT),
+        'granularity': granularity
+    }
+
+    r = requests.get(f'https://api.pro.coinbase.com/products/{price_pair}/candles?' + urllib.parse.urlencode(params))
     return r.json()
 
 
@@ -32,20 +35,22 @@ def get_candles_for_coin(coin, start_time, end_time, granularity):
     ]   
     """
 
-    dt = granularity/60/5
-    t0 = datetime.strptime(start_time, DATE_FORMAT)
-    t1 = t0 + timedelta(days=dt)
-    end_time = datetime.strptime(end_time, DATE_FORMAT)
+    start = datetime.strptime(start_time, DATE_FORMAT)
+    end = datetime.strptime(end_time, DATE_FORMAT)
+
+    requests_per_message = 300
+    number_of_requests = abs((end - start).total_seconds())/granularity
+    print(number_of_requests)
+
 
     price_pair = coin.upper() + '-USD'
     ret = []
-    while t1 < end_time:
-        print(datetime.strftime(t1, '%Y-%m-%d'), datetime.strftime(end_time, '%Y-%m-%d'), end="\r", flush=True)
+    for i in range(int(number_of_requests/requests_per_message) + 1):
+        t0 = start + timedelta(0, i*granularity*requests_per_message)
+        t1 = start + timedelta(0, (i+1)*granularity*requests_per_message)
 
         result = make_candles_request(price_pair, t0, t1, granularity)
     
-        t0 = t0 + timedelta(days=dt)
-        t1 = t1 + timedelta(days=dt)
 
         ret += result
 
@@ -103,7 +108,6 @@ def get_data():
     index = list(range(len(timestamps)))
 
     df = pd.DataFrame(data, index=index, columns=create_header(coins))
-    allorders[allorders == None] = 0
     df['timestamp'] = timestamps
     print(df)
     return df.to_json()
@@ -114,7 +118,7 @@ def get_data():
 if __name__ == '__main__':
     """Tests"""
     coins = ['btc']
-    candles = get_candles('2021-04-01T00:00', '2021-04-22T00:00', coins, 900)
+    candles = get_candles('2021-04-01T00:00', '2021-04-02T00:00', coins, 60)
 
     data, timestamps = get_data_from_candles(candles, coins)
 
@@ -130,3 +134,6 @@ if __name__ == '__main__':
     df = pd.DataFrame(data, index=index, columns=create_header(coins))
     df['timestamps'] = timestamps
     print(df)
+
+    df['btc_close'].plot(label='btc', figsize=(20, 15))
+    plt.show()
