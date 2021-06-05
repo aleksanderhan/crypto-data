@@ -55,7 +55,6 @@ class CandlesTable(DB):
         self.make_stmt(self.INSERT_CANDLE, (ts, coin, currency, low, high, open, close, volume))
 
     def fetch_candles(self, coin, currency, start, finish):
-        print(start, finish)
         return self.query(self.FETCH_CANDLES, (start, finish, coin, currency, start, finish))
 
 
