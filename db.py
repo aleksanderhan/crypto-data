@@ -72,7 +72,7 @@ class CandlesTable(DB):
             batch = candles[i:i+1000]
             for candle in batch:
                 stmts.append(self.INSERT_CANDLE)
-                params += [datetime.fromtimestamp(int(candle[0])), coin, currency, candle[1], candle[2], candle[3], candle[4], candle[5]]
+                params += [datetime.fromtimestamp(candle[0]), coin, currency, candle[1], candle[2], candle[3], candle[4], candle[5]]
 
             self.make_stmt(' '.join(stmts), params)
             i += 1000
