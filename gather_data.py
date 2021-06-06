@@ -58,9 +58,7 @@ def main(connect_str, args):
         candles = get_candles_for_coin(coin, currency, args.start, args.end, 60)
         t1 = perf_counter()
         print(f'Downloaded candles for {coin} in {t1-t0} s')
-
-        for candle in candles:
-            candles_db.insert_candle(datetime.fromtimestamp(candle[0]), coin, currency, candle[1], candle[2], candle[3], candle[4], candle[5])
+        candles_db.insert_candles(coin, currency, candles)
         t2 = perf_counter()
         print(f'Inserted candles into db in {t2-t1} s')
 

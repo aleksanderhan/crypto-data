@@ -1,4 +1,5 @@
 import psycopg2
+from datetime import datetime
 
 
 class DB(object):
@@ -19,20 +20,24 @@ class DB(object):
             print(error)
 
     def query(self, query, params):
-        try:
-            with self._create_connection() as conn:
-                with conn.cursor() as cursor:
-                    cursor.execute(query, params)
-                    records = cursor.fetchall()
-        except (Exception, psycopg2.DatabaseError) as error:
-            print(error)
+        
+        with self._create_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(query, params)
+                records = cursor.fetchall()
+                return records
 
-        return records
+
 
 
 class CandlesTable(DB):
 
+    FIND_EARLIEST_CANDLE = "SELECT min(ts) FROM candles WHERE coin = %s AND currency = %s;"
+
+    FIND_LATEST_CANDLE = "SELECT max(ts) FROM candles WHERE coin = %s AND currency = %s;"
+
     INSERT_CANDLE = "INSERT INTO candles(ts, coin, currency, low, high, open, close, volume) VALUES (%s, %s, %s, %s, %s, %s, %s, %s);"
+
     FETCH_CANDLES = """
                     SELECT
                         time_bucket_gapfill(
@@ -51,8 +56,28 @@ class CandlesTable(DB):
                     ORDER BY time
                     """
 
+    def find_earliest_candle(self, coin, currency):
+        return self.query(self.FIND_EARLIEST_CANDLE, (coin, currency))[0][0]
+
+    def find_lateset_candle(self, coin, currency):
+        return self.query(self.FIND_LATEST_CANDLE, (coin, currency))[0][0]
+
     def insert_candle(self, ts, coin, currency, low, high, open, close, volume):
         self.make_stmt(self.INSERT_CANDLE, (ts, coin, currency, low, high, open, close, volume))
+
+    def insert_candles(self, coin, currency, candles):
+        i = 0
+        while i < len(candles):
+            stmts, params = [], []
+            batch = candles[i:i+1000]
+            for candle in batch:
+                stmts.append(self.INSERT_CANDLE)
+                params += [datetime.fromtimestamp(candle[0]), coin, currency, candle[1], candle[2], candle[3], candle[4], candle[5]]
+
+            self.make_stmt(' '.join(stmts), params)
+            i += 1000
+
+
 
     def fetch_candles(self, coin, currency, start, finish):
         return self.query(self.FETCH_CANDLES, (start, finish, coin, currency, start, finish))

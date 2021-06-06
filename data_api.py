@@ -2,6 +2,7 @@ import pandas as pd
 import requests
 import matplotlib.pylab as plt
 import urllib
+from datetime import timedelta
 from flask import Flask, request
 from time import perf_counter
 from functools import reduce
@@ -30,7 +31,7 @@ def get_dataframe(start_time, end_time, coins, currency):
         df = pd.DataFrame(records, columns=create_header(coin))
         candles.append(df)
 
-    return reduce(lambda left, right: pd.merge_ordered(left, right, on='timestamp', ), candles)
+    return reduce(lambda left, right: pd.merge_asof(left, right, on='timestamp', tolerance=timedelta(seconds=30)), candles)
 
 
 @app.route('/data')
