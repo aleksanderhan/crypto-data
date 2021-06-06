@@ -36,7 +36,7 @@ class CandlesTable(DB):
 
     FIND_LATEST_CANDLE = "SELECT max(ts) FROM candles WHERE coin = %s AND currency = %s;"
 
-    INSERT_CANDLE = "INSERT INTO candles(ts, coin, currency, low, high, open, close, volume) VALUES (%s, %s, %s, %s, %s, %s, %s, %s);"
+    INSERT_CANDLE = "INSERT INTO candles(ts, coin, currency, low, high, open, close, volume) VALUES (%s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING;"
 
     FETCH_CANDLES = """
                     SELECT
