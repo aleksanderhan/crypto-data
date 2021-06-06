@@ -11,19 +11,24 @@ def main(connect_str, args):
     candles_db = load_db('candles', connect_str)
 
     if args.earliest:
-        earliest = candles_db.find_earliest_candle(args.earliest, currency)
-        print(f'earliest candle for {args.earliest}:', datetime.strftime(earliest, DATE_FORMAT))
+        earliest = candles_db.find_earliest_candle(args.coin, currency)
+        print(f'earliest candle for {args.coin}:', datetime.strftime(earliest, DATE_FORMAT))
 
     if args.latest:
-        latest = candles_db.find_lateset_candle(args.latest, currency)
-        print(f'latest candle for {args.earliest}:', datetime.strftime(latest, DATE_FORMAT))
+        latest = candles_db.find_lateset_candle(args.coin, currency)
+        print(f'latest candle for {args.coin}:', datetime.strftime(latest, DATE_FORMAT))
+
+    if args.plot:
+        coins = args.plot.split(',').strip()
+        ax = df[:-80].plot(label='observed', figsize=(20, 15))
 
 
 if __name__ == '__main__':
     connect_str = 'dbname=cryptodata user=crypto password=secret port=5432 host=localhost'
     parser = argparse.ArgumentParser()
-    parser.add_argument('--earliest')
-    parser.add_argument('--latest')
+    parser.add_argument('--earliest', action='store_true')
+    parser.add_argument('--latest', action='store_true')
+    parser.add_argument('coin')
     args = parser.parse_args()
 
     main(connect_str, args)
