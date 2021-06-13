@@ -15,7 +15,7 @@ DATE_FORMAT = '%Y-%m-%dT%H:%M'
 
 candle_features = ['low', 'high', 'open', 'close', 'volume'] # 'market_cap', 'circulating_supply', 'keyword_freq', 'biz_sia', 'transactions'
 
-connect_str = 'dbname=cryptodata user=crypto password=secret port=5432 host=localhost'
+connect_str = 'dbname=cryptodata user=crypto password=secret port=5432 host=server'
 candles_db = load_db('candles', connect_str)
 page_views_db = load_db('pageviews', connect_str)
 
