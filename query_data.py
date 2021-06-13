@@ -20,7 +20,7 @@ def main(connect_str, args):
 
 
 if __name__ == '__main__':
-    connect_str = 'dbname=cryptodata user=crypto password=secret port=5432 host=localhost'
+    connect_str = 'dbname=cryptodata user=crypto password=secret port=5432 host=server'
     parser = argparse.ArgumentParser()
     parser.add_argument('--earliest', action='store_true')
     parser.add_argument('--latest', action='store_true')
