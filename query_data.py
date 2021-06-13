@@ -18,10 +18,6 @@ def main(connect_str, args):
         latest = candles_db.find_lateset_candle(args.coin, currency)
         print(f'latest candle for {args.coin}:', datetime.strftime(latest, DATE_FORMAT))
 
-    if args.plot:
-        coins = args.plot.split(',').strip()
-        ax = df[:-80].plot(label='observed', figsize=(20, 15))
-
 
 if __name__ == '__main__':
     connect_str = 'dbname=cryptodata user=crypto password=secret port=5432 host=localhost'

@@ -28,8 +28,6 @@ class DB(object):
                 return records
 
 
-
-
 class CandlesTable(DB):
 
     FIND_EARLIEST_CANDLE = "SELECT min(ts) FROM candles WHERE coin = %s AND currency = %s;"
@@ -53,7 +51,7 @@ class CandlesTable(DB):
                     WHERE coin = %s AND currency = %s
                     AND ts BETWEEN %s AND %s
                     GROUP BY time
-                    ORDER BY time
+                    ORDER BY time;
                     """
 
     def find_earliest_candle(self, coin, currency):
@@ -77,11 +75,45 @@ class CandlesTable(DB):
             self.make_stmt(' '.join(stmts), params)
             i += 1000
 
-
-
     def fetch_candles(self, coin, currency, start, finish):
         return self.query(self.FETCH_CANDLES, (start, finish, coin, currency, start, finish))
 
+
+class WikiPageViews(DB):
+
+    DATE_FORMAT = '%Y%m%d%H'
+
+    INSERT_PAGE_VIEW = "INSERT INTO wiki_page_views(ts, article, views) VALUES (%s, %s, %s) ON CONFLICT DO NOTHING;"
+
+    FETCH_PAGE_VIEWS = """
+                        SELECT
+                            time_bucket_gapfill(
+                                '1 minute', ts,
+                                start => %s, 
+                                finish => %s) AS time,
+                            interpolate(avg(views)) AS views
+                        FROM wiki_page_views
+                        WHERE article = %s
+                        AND ts BEtWEEN %s AND %s
+                        GROUP BY time
+                        ORDER BY time;
+                        """
+
+    def insert_page_views(self, page_views):
+        items = page_views['items']
+        i = 0
+        while i < len(items):
+            stmts, params = [], []
+            batch = items[i:i+1000]
+            for item in batch:
+                stmts.append(self.INSERT_PAGE_VIEW)
+                params += [datetime.strptime(item['timestamp'], self.DATE_FORMAT), item['article'], float(item['views'])]
+
+            self.make_stmt(' '.join(stmts), params)
+            i += 1000
+
+    def fetch_page_views(self, article, start, finish):
+        return self.query(self.FETCH_PAGE_VIEWS, (start, finish, article, start, finish))
 
 
 
@@ -90,5 +122,6 @@ def load_db(db, connect_str):
 
 
 db_interfaces = {
-    'candles': CandlesTable
+    'candles': CandlesTable,
+    'pageviews': WikiPageViews
 }
