@@ -19,8 +19,7 @@ class DB(object):
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
 
-    def query(self, query, params):
-        
+    def query(self, query, params):    
         with self._create_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute(query, params)
@@ -83,6 +82,10 @@ class WikiPageViews(DB):
 
     DATE_FORMAT = '%Y%m%d%H'
 
+    FIND_EARLIEST_PAGEVIEW = "SELECT min(ts) FROM wiki_page_views WHERE article = %s;"
+
+    FIND_LATEST_PAGEVIEW = "SELECT max(ts) FROM wiki_page_views WHERE article = %s;"
+
     INSERT_PAGE_VIEW = "INSERT INTO wiki_page_views(ts, article, views) VALUES (%s, %s, %s) ON CONFLICT DO NOTHING;"
 
     FETCH_PAGE_VIEWS = """
@@ -91,13 +94,19 @@ class WikiPageViews(DB):
                                 '1 minute', ts,
                                 start => %s, 
                                 finish => %s) AS time,
-                            interpolate(avg(views)) AS views
+                            locf(avg(views)) AS views
                         FROM wiki_page_views
                         WHERE article = %s
-                        AND ts BEtWEEN %s AND %s
+                        AND ts BETWEEN %s AND %s
                         GROUP BY time
                         ORDER BY time;
                         """
+
+    def find_earliest_pageview(self, article):
+        return self.query(self.FIND_EARLIEST_PAGEVIEW, (article,))[0][0]
+
+    def find_latest_pageview(self, article):
+        return self.query(self.FIND_LATEST_PAGEVIEW, (article,))[0][0]
 
     def insert_page_views(self, page_views):
         items = page_views['items']
@@ -116,6 +125,13 @@ class WikiPageViews(DB):
         return self.query(self.FETCH_PAGE_VIEWS, (start, finish, article, start, finish))
 
 
+class GoogleTrends(DB):
+
+    INSERT_TREND = "INSERT INTO google_trends(ts, keyword, trend) VALUES (%s, %s, %s);"
+
+    def insert_trends(self, keyword, trends):
+        pass
+
 
 def load_db(db, connect_str):
     return db_interfaces[db](connect_str)
@@ -123,5 +139,6 @@ def load_db(db, connect_str):
 
 db_interfaces = {
     'candles': CandlesTable,
-    'pageviews': WikiPageViews
+    'pageviews': WikiPageViews,
+    'trends': GoogleTrends
 }

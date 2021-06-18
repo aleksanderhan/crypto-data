@@ -2,7 +2,7 @@ import pandas as pd
 import requests
 import matplotlib.pylab as plt
 import urllib
-from datetime import timedelta
+from datetime import datetime, timedelta
 from flask import Flask, request
 from time import perf_counter
 from functools import reduce
@@ -37,12 +37,14 @@ def get_dataframe(start_time, end_time, coins, currency, wiki_articles):
         data.append(df)
 
     for article in wiki_articles:
-        records = page_views_db.fetch_page_views(article, start_time, end_time)
+        start = datetime.strftime(datetime.strptime(start_time, DATE_FORMAT) - timedelta(days=1), DATE_FORMAT)
+        end = datetime.strftime(datetime.strptime(end_time, DATE_FORMAT) - timedelta(days=1), DATE_FORMAT)
+        records = page_views_db.fetch_page_views(article, start, end)
         df = pd.DataFrame(records, columns=create_page_views_header(article))
-        df['timestamp'] = df['timestamp'] + pd.DateOffset(days=1) # Previous day pageviews are todays observation (because I can't get the pageviews for today)
+        df['timestamp'] = df['timestamp'] + pd.DateOffset(days=1) # Previous day pageviews are todays observation (because I can't get the pageviews for today, today)
         data.append(df)
 
-    return reduce(lambda left, right: pd.merge_asof(left, right, on='timestamp', tolerance=timedelta(seconds=30)), data)
+    return reduce(lambda left, right: pd.merge_ordered(left, right, on='timestamp'), data)
 
 
 @app.route('/data')
@@ -64,8 +66,8 @@ def get_data():
 
 if __name__ == '__main__':
     """Tests"""
-    coins = ['btc', 'eth']
-    wiki_articles = ['Bitcoin', 'Ethereum']
+    coins = ['eth']
+    wiki_articles = ['Ethereum']
     df = get_dataframe('2021-01-01T00:00', '2021-02-01T00:00', coins, 'USD', wiki_articles)
     #df.dropna(inplace=True, how='any')
     #df.reset_index(drop=True, inplace=True)

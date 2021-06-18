@@ -18,9 +18,10 @@ def main(connect_str, args):
 
     if args.plot:
         coins = args.plot.split(',')
-        df = get_dataframe(args.start, args.end, coins, currency)
+        df = get_dataframe(args.start, args.end, coins, currency, [])
         #df.timestamp = pd.to_datetime(df.timestamp)
         #df.dropna(inplace=True, how='any')
+        print(df)
         df.drop(['timestamp'], axis = 1, inplace = True, errors = 'ignore')
         for coin in coins:
             for feature in features:

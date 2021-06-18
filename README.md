@@ -11,7 +11,20 @@ psql postgresql://postgres:password@localhost:5432/postgres -f sql/00_init_db.sq
 psql postgresql://crypto:secret@localhost:5432/cryptodata -f sql/01_create_tables.sql
 
 
-## Links
+## Wikipedia pageviews
 
 * https://pageviews.toolforge.org/
 * https://wikimedia.org/api/rest_v1/#/Pageviews%20data/
+
+
+## Google trends
+
+* Only relative data
+* https://trends.google.com/trends/
+* https://pypi.org/project/pytrends/
+
+
+## Grafana
+
+* https://docs.timescale.com/timescaledb/latest/tutorials/grafana/visualize-missing-data
+* https://grafana.com/docs/grafana/v7.5/datasources/postgres/
