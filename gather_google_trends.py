@@ -10,11 +10,11 @@ from db import load_db
 DATE_FORMAT = '%Y-%m-%d'
 
 
-def get_trend(keywords, start, end):
-    pytrends = TrendReq(hl='en-US', tz=0, retries=5, backoff_factor=0.2)
+def get_trend(keyword, start, end):
+    pytrends = TrendReq(tz=0, retries=10, backoff_factor=0.5)
 
     trends = pytrends.get_historical_interest(
-        [*keywords], 
+        [keyword], 
         year_start=start.date().year, 
         month_start=start.date().month, 
         day_start=start.date().day, 
@@ -24,48 +24,57 @@ def get_trend(keywords, start, end):
         day_end=end.date().day,
         hour_end=end.time().hour
     )
-    try:
-        trends.drop('isPartial', axis=1, inplace=True)
-    except:
-        print(trends)
+    trends= trends[trends[keyword] != 0]
+    trends.drop('isPartial', axis=1, inplace=True)
     return trends
 
 
 
 def main(connect_str, args):
-    trends_db = load_db('trends', connect_str)
+    csv_file = 'trends_' + args.keyword + '.csv'
 
-    start = datetime.strptime(args.start, DATE_FORMAT)
-    finish = datetime.strptime(args.end, DATE_FORMAT)
+    if args.start and args.end:
+        start = datetime.strptime(args.start, DATE_FORMAT)
+        finish = datetime.strptime(args.end, DATE_FORMAT)
 
-    dt = timedelta(days=1)
-    end = start + dt
-    trends = get_trend(args.keywords, start, end)
+        dt = timedelta(days=1)
+        end = start + dt
+        trends = get_trend(args.keyword, start, end)
 
-    while end < finish:
-        print(datetime.strftime(end, DATE_FORMAT))
-        start = start + dt
-        end = end + dt
+        while end < finish:
+            sleep(1)
+            print(datetime.strftime(end, DATE_FORMAT))
+            start = start + dt
+            end = end + dt
 
-        try:
-            temp = get_trend(args.keywords, start, end)
+            print(trends[args.keyword].iloc[-1])
+            try:
+                temp = get_trend(args.keyword, start, end)
+                k = trends[args.keyword].iloc[-1] / temp[args.keyword].iloc[0]
+                temp.loc[:,args.keyword] *= k
 
-            for kw in args.keywords:
-                k = trends[kw].iloc[-1] / temp[kw].iloc[0]
-                temp.loc[:,kw] *= k
+                #temp.drop(temp.head(1).index, inplace=True)       
+                trends = pd.concat([trends, temp])
+            except Exception as error:
+                print(error)
+                print(temp)
+                continue
 
-            temp.drop(temp.head(1).index, inplace=True)       
-            trends = pd.concat([trends, temp])
-        except Exception as error:
-            print(error)
-            print(temp)
-            continue
+        trends.dropna(inplace=True, how='any')
+        trends.index = trends.index.astype(str)
+        trends = trends.astype({args.keyword: float})
 
-    trends.index = trends.index.astype(str)
-    for kw in args.keywords:
-        trends = trends.astype({kw: int})
+        trends.to_csv(csv_file)
 
-    trends_db.insert_trends(args.keywords, trends)
+    elif args.insert:
+        trends_db = load_db('trends', connect_str)
+        
+        trends = pd.read_csv(csv_file)
+        trends = trends.set_index('date')
+        print(trends)
+        trends.index = trends.index.astype(str)
+        trends = trends.astype({args.keyword: float})
+        trends_db.insert_trends(args.keyword, trends)
 
     #ax = trends.plot(label='observed', figsize=(20, 15), linestyle='none', marker='o')
     #plt.legend()
@@ -77,7 +86,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--start')
     parser.add_argument('--end')
-    parser.add_argument('--keywords', nargs='+')
+    parser.add_argument('--keyword')
+    parser.add_argument('--insert', action='store_true')
     args = parser.parse_args()
     print(args)
 

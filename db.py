@@ -158,14 +158,13 @@ class GoogleTrends(DB):
     def find_latest_trend(self, keyword):
         return self.query(self.FIND_LATEST_TREND, (keyword,))[0][0]
 
-    def insert_trends(self, keywords, trend):
-        for kw in keywords:
-            stmts, params = [], []
-            for index, row in trend.iterrows():
-                stmts.append(self.INSERT_TREND)
-                params += [datetime.strptime(index, self.DATE_FORMAT), kw, row[kw]]
+    def insert_trends(self, keyword, trend):
+        stmts, params = [], []
+        for index, row in trend.iterrows():
+            stmts.append(self.INSERT_TREND)
+            params += [datetime.strptime(index, self.DATE_FORMAT), keyword, row[keyword]]
 
-            self.make_stmt(' '.join(stmts), params)
+        self.make_stmt(' '.join(stmts), params)
 
     def fetch_trend(self, keyword, start, finish):
         return self.query(self.FETCH_TREND, (start, finish, keyword, start, finish))
