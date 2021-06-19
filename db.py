@@ -1,4 +1,7 @@
 import psycopg2
+import numpy as np
+from psycopg2.extensions import register_adapter, AsIs
+psycopg2.extensions.register_adapter(np.int64, psycopg2._psycopg.AsIs)
 from datetime import datetime
 
 
@@ -94,7 +97,7 @@ class WikiPageViews(DB):
                                 '1 minute', ts,
                                 start => %s, 
                                 finish => %s) AS time,
-                            locf(avg(views)) AS views
+                            locf(avg(views::FLOAT)) AS views
                         FROM wiki_page_views
                         WHERE article = %s
                         AND ts BETWEEN %s AND %s
@@ -127,10 +130,45 @@ class WikiPageViews(DB):
 
 class GoogleTrends(DB):
 
-    INSERT_TREND = "INSERT INTO google_trends(ts, keyword, trend) VALUES (%s, %s, %s);"
+    DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 
-    def insert_trends(self, keyword, trends):
-        pass
+    FIND_EARLIEST_TREND = "SELECT min(ts) FROM google_trends WHERE keyword = %s;"
+
+    FIND_LATEST_TREND = "SELECT max(ts) FROM google_trends WHERE keyword = %s;"
+
+    INSERT_TREND = "INSERT INTO google_trends(ts, keyword, trend) VALUES (%s, %s, %s) ON CONFLICT DO NOTHING;"
+
+    FETCH_TREND = """
+                    SELECT
+                        time_bucket_gapfill(
+                            '1 minute', ts,
+                            start => %s,
+                            finish => %s) AS time,
+                        locf(avg(trend::FLOAT)) AS trend
+                    FROM google_trends
+                    WHERE keyword = %s
+                    AND ts BETWEEN %s AND %s
+                    GROUP BY time
+                    ORDER BY time;
+                    """
+
+    def find_earliest_trend(self, keyword):
+        return self.query(self.FIND_EARLIEST_TREND, (keyword,))[0][0]
+
+    def find_latest_trend(self, keyword):
+        return self.query(self.FIND_LATEST_TREND, (keyword,))[0][0]
+
+    def insert_trends(self, keywords, trend):
+        for kw in keywords:
+            stmts, params = [], []
+            for index, row in trend.iterrows():
+                stmts.append(self.INSERT_TREND)
+                params += [datetime.strptime(index, self.DATE_FORMAT), kw, row[kw]]
+
+            self.make_stmt(' '.join(stmts), params)
+
+    def fetch_trend(self, keyword, start, finish):
+        return self.query(self.FETCH_TREND, (start, finish, keyword, start, finish))
 
 
 def load_db(db, connect_str):

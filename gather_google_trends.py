@@ -13,7 +13,7 @@ DATE_FORMAT = '%Y-%m-%d'
 def get_trend(keywords, start, end):
     pytrends = TrendReq(hl='en-US', tz=0, retries=5, backoff_factor=0.2)
 
-    trend = pytrends.get_historical_interest(
+    trends = pytrends.get_historical_interest(
         [*keywords], 
         year_start=start.date().year, 
         month_start=start.date().month, 
@@ -25,11 +25,10 @@ def get_trend(keywords, start, end):
         hour_end=end.time().hour
     )
     try:
-        trend.drop('isPartial', axis=1, inplace=True)
+        trends.drop('isPartial', axis=1, inplace=True)
     except:
-        print(trend)
-    #print(trend)
-    return trend
+        print(trends)
+    return trends
 
 
 
@@ -38,40 +37,39 @@ def main(connect_str, args):
 
     start = datetime.strptime(args.start, DATE_FORMAT)
     finish = datetime.strptime(args.end, DATE_FORMAT)
-    dt = timedelta(days=3)
 
+    dt = timedelta(days=1)
     end = start + dt
-    trend = get_trend(args.keywords, start, end)
+    trends = get_trend(args.keywords, start, end)
 
     while end < finish:
+        print(datetime.strftime(end, DATE_FORMAT))
         start = start + dt
         end = end + dt
 
-        temp = get_trend(args.keywords, start, end)
+        try:
+            temp = get_trend(args.keywords, start, end)
 
-        for kw in args.keywords:
-            try:
-                print(trend[kw].iloc[-1])
-                print(temp[kw].iloc[0])
-            except:
-                print(trend)
-                print(temp)
-                break;
-            delta = trend[kw].iloc[-1] - temp[kw].iloc[0]
-            print('delta', delta)
-            #temp[kw] = temp[kw] + delta
-            temp.loc[:,kw] += delta
+            for kw in args.keywords:
+                k = trends[kw].iloc[-1] / temp[kw].iloc[0]
+                temp.loc[:,kw] *= k
 
-        temp.drop(temp.head(1).index, inplace=True) 
-        
-        trend = pd.concat([trend, temp])
+            temp.drop(temp.head(1).index, inplace=True)       
+            trends = pd.concat([trends, temp])
+        except Exception as error:
+            print(error)
+            print(temp)
+            continue
 
+    trends.index = trends.index.astype(str)
+    for kw in args.keywords:
+        trends = trends.astype({kw: int})
 
-    print('max', trend['bitcoin'].max())
-    ax = trend.plot(label='observed', figsize=(20, 15), linestyle='none', marker='o')
+    trends_db.insert_trends(args.keywords, trends)
 
-    plt.legend()
-    plt.show()
+    #ax = trends.plot(label='observed', figsize=(20, 15), linestyle='none', marker='o')
+    #plt.legend()
+    #plt.show()
 
 
 if __name__ == '__main__':
