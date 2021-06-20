@@ -42,7 +42,7 @@ def main(connect_str, args):
         trends = get_trend(args.keyword, start, end)
 
         while end < finish:
-            sleep(1)
+            sleep(0.5)
             print(datetime.strftime(end, DATE_FORMAT))
             start = start + dt
             end = end + dt
@@ -71,9 +71,9 @@ def main(connect_str, args):
         
         trends = pd.read_csv(csv_file)
         trends = trends.set_index('date')
-        print(trends)
         trends.index = trends.index.astype(str)
         trends = trends.astype({args.keyword: float})
+        print(trends)
         trends_db.insert_trends(args.keyword, trends)
 
     #ax = trends.plot(label='observed', figsize=(20, 15), linestyle='none', marker='o')

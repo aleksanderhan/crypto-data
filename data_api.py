@@ -48,7 +48,7 @@ def get_dataframe(start_time, end_time, coins, currency, wiki_articles, trends_k
         records = page_views_db.fetch_page_views(article, start, end)
 
         df = pd.DataFrame(records, columns=create_page_views_header(article))
-        df['timestamp'] = df['timestamp'] + pd.DateOffset(days=1) # Previous day pageviews are todays observation (because I can't get the pageviews for today, today)
+        df['timestamp'] = df['timestamp'] + pd.Timedelta(1, 'days') # Previous day pageviews are todays observation (because I can't get the pageviews for today, today)
         data.append(df)
 
     for keyword in trends_keywords:
@@ -57,7 +57,7 @@ def get_dataframe(start_time, end_time, coins, currency, wiki_articles, trends_k
         records = trends_db.fetch_trend(keyword, start, end)
 
         df = pd.DataFrame(records, columns=create_trends_header(keyword))
-        df['timestamp'] = df['timestamp'] + pd.DateOffset(hour=1)
+        df['timestamp'] = df['timestamp'] + pd.Timedelta(1, 'hour')
         data.append(df)
 
     df = reduce(lambda left, right: pd.merge_ordered(left, right, on='timestamp'), data)
