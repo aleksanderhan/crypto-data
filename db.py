@@ -97,7 +97,7 @@ class WikiPageViews(DB):
                                 '1 minute', ts,
                                 start => %s, 
                                 finish => %s) AS time,
-                            locf(avg(views::FLOAT)) AS views
+                            interpolate(avg(views::FLOAT)) AS views
                         FROM wiki_page_views
                         WHERE article = %s
                         AND ts BETWEEN %s AND %s
@@ -144,7 +144,7 @@ class GoogleTrends(DB):
                             '1 minute', ts,
                             start => %s,
                             finish => %s) AS time,
-                        locf(avg(trend::FLOAT)) AS trend
+                        interpolate(avg(trend::FLOAT)) AS trend
                     FROM google_trends
                     WHERE keyword = %s
                     AND ts BETWEEN %s AND %s
