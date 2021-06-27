@@ -61,7 +61,7 @@ def get_dataframe(start_time, end_time, coins, currency, wiki_articles, trends_k
         data.append(df)
 
     df = reduce(lambda left, right: pd.merge_ordered(left, right, on='timestamp'), data)
-    df.drop('timestamp', axis=1, inplace=True)
+    #df.drop('timestamp', axis=1, inplace=True)
     return df
 
 
