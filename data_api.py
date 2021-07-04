@@ -24,7 +24,6 @@ trends_db = load_db('trends', connect_str)
 def create_candle_header(coin):
     return ['timestamp'] + [coin + '_' + f for f in candle_features]
 
-
 def create_page_views_header(article):
     return ['timestamp'] + [article + '_pageviews']
 
@@ -32,11 +31,11 @@ def create_trends_header(keyword):
     return ['timestamp'] + [keyword + '_trend']
 
 
-def get_dataframe(start_time, end_time, coins, currency, wiki_articles, trends_keywords):
+def get_dataframe(start_time, end_time, coins, currency, wiki_articles, trends_keywords, granularity):
     data = []
     
     for coin in coins:
-        records = candles_db.fetch_candles(coin, currency, start_time, end_time)
+        records = candles_db.fetch_candles(coin, currency, start_time, end_time, granularity)
 
         df = pd.DataFrame(records, columns=create_candle_header(coin))
         #df.fillna(0, inplace=True)
@@ -45,7 +44,7 @@ def get_dataframe(start_time, end_time, coins, currency, wiki_articles, trends_k
     for article in wiki_articles:
         start = datetime.strftime(datetime.strptime(start_time, DATE_FORMAT) - timedelta(days=1), DATE_FORMAT)
         end = datetime.strftime(datetime.strptime(end_time, DATE_FORMAT) - timedelta(days=1), DATE_FORMAT)
-        records = page_views_db.fetch_page_views(article, start, end)
+        records = page_views_db.fetch_page_views(article, start, end, granularity)
 
         df = pd.DataFrame(records, columns=create_page_views_header(article))
         df['timestamp'] = df['timestamp'] + pd.Timedelta(1, 'days') # Previous day pageviews are todays observation (because I can't get the pageviews for today, today)
@@ -54,7 +53,7 @@ def get_dataframe(start_time, end_time, coins, currency, wiki_articles, trends_k
     for keyword in trends_keywords:
         start = datetime.strftime(datetime.strptime(start_time, DATE_FORMAT) - timedelta(hours=1), DATE_FORMAT)
         end = datetime.strftime(datetime.strptime(end_time, DATE_FORMAT) - timedelta(hours=1), DATE_FORMAT)
-        records = trends_db.fetch_trend(keyword, start, end)
+        records = trends_db.fetch_trend(keyword, start, end, granularity)
 
         df = pd.DataFrame(records, columns=create_trends_header(keyword))
         df['timestamp'] = df['timestamp'] + pd.Timedelta(1, 'hour')
@@ -72,8 +71,9 @@ def get_data():
     coins = request.args.get('coins', '').split(',')
     wiki_articles = request.args.get('wiki_articles', '').split(',')
     trend_keywords = request.args.get('trend_keywords', '').split(',')
+    granularity = int(request.args.get('granularity', ''))
 
-    df = get_dataframe(start_time, end_time, coins, 'USD', wiki_articles, trend_keywords)
+    df = get_dataframe(start_time, end_time, coins, 'USD', wiki_articles, trend_keywords, granularity)
     df.dropna(inplace=True, how='any')
     df.reset_index(drop=True, inplace=True)
     #df.fillna(0, inplace=True)

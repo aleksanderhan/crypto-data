@@ -41,7 +41,7 @@ class CandlesTable(DB):
     FETCH_CANDLES = """
                     SELECT
                         time_bucket_gapfill(
-                            '1 minute', ts,
+                            '%s minute', ts,
                             start => %s, 
                             finish => %s) AS time,
                         interpolate(avg(low)) AS low,
@@ -77,8 +77,8 @@ class CandlesTable(DB):
             self.make_stmt(' '.join(stmts), params)
             i += 1000
 
-    def fetch_candles(self, coin, currency, start, finish):
-        return self.query(self.FETCH_CANDLES, (start, finish, coin, currency, start, finish))
+    def fetch_candles(self, coin, currency, start, finish, granularity):
+        return self.query(self.FETCH_CANDLES, (granularity, start, finish, coin, currency, start, finish))
 
 
 class WikiPageViews(DB):
@@ -94,7 +94,7 @@ class WikiPageViews(DB):
     FETCH_PAGE_VIEWS = """
                         SELECT
                             time_bucket_gapfill(
-                                '1 minute', ts,
+                                '%s minute', ts,
                                 start => %s, 
                                 finish => %s) AS time,
                             interpolate(avg(views::FLOAT)) AS views
@@ -124,8 +124,8 @@ class WikiPageViews(DB):
             self.make_stmt(' '.join(stmts), params)
             i += 1000
 
-    def fetch_page_views(self, article, start, finish):
-        return self.query(self.FETCH_PAGE_VIEWS, (start, finish, article, start, finish))
+    def fetch_page_views(self, article, start, finish, granularity):
+        return self.query(self.FETCH_PAGE_VIEWS, (granularity, start, finish, article, start, finish))
 
 
 class GoogleTrends(DB):
@@ -141,7 +141,7 @@ class GoogleTrends(DB):
     FETCH_TREND = """
                     SELECT
                         time_bucket_gapfill(
-                            '1 minute', ts,
+                            '%s minute', ts,
                             start => %s,
                             finish => %s) AS time,
                         interpolate(avg(trend::FLOAT)) AS trend
@@ -166,8 +166,8 @@ class GoogleTrends(DB):
 
         self.make_stmt(' '.join(stmts), params)
 
-    def fetch_trend(self, keyword, start, finish):
-        return self.query(self.FETCH_TREND, (start, finish, keyword, start, finish))
+    def fetch_trend(self, keyword, start, finish, granularity):
+        return self.query(self.FETCH_TREND, (granularity, start, finish, keyword, start, finish))
 
 
 def load_db(db, connect_str):
